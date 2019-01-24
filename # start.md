@@ -419,6 +419,260 @@ addons
 mkdir textures && cd textures
 wget https://aka.ms/resourcepacktemplate
 ```
-列一下目录，列表[点这里](./textures.md)
+列一下目录，列表[点这里](./textures.txt)
 
-资源包中添加了几个关于动画的新目录
+资源包中添加了几个关于动画的新目录:
+* animations
+* animation_controllers
+* entity
+其他的目录有其他的作用，不要混淆了．
+
+动画被指定为短名称+其全名。短名称用于animation controllers，而长名称用于动画文件。
+### animations
+动画都会以json格式储存在“animation”文件夹内,并由实体的json定义文件引用
+### animation_controllers
+动画控制器允许实体的参数来混合多个动画（例如：移动速度，旋转速度等）
+### entity
+引导文件
+### 自定义动画
+为了定义实体具有动画，必须将animations和animation controllers 都添加到entity的实体定义文件中：
+
+可以说，entity目录的文件就是动作的'引导'，决定了哪些实体用哪些动画．
+```
+# cat ./entity/pig.json
+{
+  "format_version": "1.8.0-beta.1",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "minecraft:pig",
+      "materials": { "default": "pig" },
+      "textures": {
+        "default": "textures/entity/pig/pig",
+        "saddled": "textures/entity/pig/pig_saddle"
+      },
+      "geometry": {
+        "default": "geometry.pig"
+      },
+      "animations": {
+        "setup": "animation.pig.setup",
+        "walk": "animation.quadruped.walk",
+        "look_at_target": "animation.common.look_at_target",
+        "baby_transform": "animation.pig.baby_transform"
+      },
+      "animation_controllers": [
+        { "setup": "controller.animation.pig.setup" },
+        { "move": "controller.animation.pig.move" },
+        { "baby": "controller.animation.pig.baby" }
+      ],
+      "render_controllers": [ "controller.render.pig" ],
+      "locators": {
+        "lead": { 
+          "head": [ 0.0, 14.0, -6.0 ] 
+        }
+      },
+      "spawn_egg": {
+        "texture": "spawn_egg",
+        "texture_index": 2
+      }
+    }
+  }
+}
+```
+我把文件中目前不用到的内容删去之后：
+```
+# cat ./entity/pig＿removed.json
+{
+  "minecraft:client_entity": {
+    "description": {
+    //至少我们还要知道它是一只猪，对吧？
+      "identifier": "minecraft:pig",
+      //动画文件
+      "animations": {
+        "setup": "animation.pig.setup",
+        "walk": "animation.quadruped.walk",
+        "look_at_target": "animation.common.look_at_target",
+        "baby_transform": "animation.pig.baby_transform"
+      },
+      //动画控制器
+      "animation_controllers": [
+        { "setup": "controller.animation.pig.setup" },
+        { "move": "controller.animation.pig.move" },
+        { "baby": "controller.animation.pig.baby" }
+      ]
+    }
+  }
+}
+```
+#### animations
+在每帧的开始，骨架从其几何定义被重置为其默认姿势，然后按顺序依次应用动画。
+```
+# cat ./animations/pig.json
+{
+  "format_version": "1.8.0",
+  "animations": {
+    "animation.pig.setup.v1.0": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "rotation": [ "90.0 - this", 0.0, 0.0 ]
+        }
+      }
+    },
+    "animation.pig.setup": {
+      "loop": true,
+      "bones": {
+        "body": {
+          "rotation": [ "-this", 0.0, 0.0 ]
+        }
+      }
+    },
+    "animation.pig.baby_transform": {
+      "loop": true,
+      "bones": {
+        "head": {
+          "scale": 2.0,
+          "position": [ 0.0, 8.0, 4.0 ]
+        }
+      }
+    }
+  }
+}
+```
+#### animation_controllers
+玩家需要能够控制动画的播放方式，时间以及它们与其他动画的交互方式。动画控制器允许实体的参数来混合多个动画（例如：移动速度，旋转速度等）。
+```
+# cat ./animation_controllers/pig.json
+{
+  "format_version": "1.8.0-beta.1",
+  "animation_controllers": {
+    "controller.animation.pig.setup": {
+      "states": {
+        "default": {
+          "animations": {
+            "setup": {}
+          }
+        }
+      }
+    },
+    "controller.animation.pig.baby": {
+      "states": {
+        "baby": {
+          "parameters": [ "Entity.Flags.BABY" ],
+          "animations": {
+            "baby_transform": [
+              {
+                "0.0": 0.0,
+                "1.0": 1.0
+              }
+            ]
+          }
+        }
+      }
+    },
+    "controller.animation.pig.move": {
+      "states": {
+        "default": {
+          "parameters": [ "Entity.Member.WalkSpeed" ],
+          "animations": {
+            "walk": [
+              {
+                "0.0": 0.0,
+                "1.0": 1.0
+              }
+            ],
+            "look_at_target": {}
+          }
+        }
+      }
+    }
+  }
+}
+```
+### animation文件的格式
+这一节非常麻烦和复杂，wiki翻译到这里就停止了:(
+```
+"<animation_name>": { 
+  "loop": <bool> 
+  "blend_weight": <expression> 
+  "animation_length": <float> 
+  "override_previous_animation": <bool> 
+  "bones": [
+    {
+       "<bone_name>": {                  
+
+            "position": 1.0,                     
+            "position": [1.0],                   
+            "position": [1.0, 2.0, 3.0],          
+
+            "rotation": 45.0,                     
+            "rotation": [45.0],                  
+            "rotation": [30.0, 0.0, 45.0],    
+            "rotation": [0.373, 0.577, 0.687, 0.235],
+            "scale": 2.0,                         
+            "scale": [2.0],                       
+
+            
+            "rotation": {
+                "0.0": [80.0, 0.0, 0.0],
+                "0.1667": [-80.0, 0.0, 0.0],
+                "0.333": [80.0, 0.0, 0.0]
+            }
+
+            
+            "rotation": {
+                "0.3": {                                                
+                    "pre": [30.0, 0.0, 45.0],                            
+                    "post": "180.{{code|0 * Math}}.Sin(Params.KeyFrameLerpTime)"  
+                }
+            }
+
+            
+            "rotation": {
+                "0.0": [80.0, 0.0, 0.0],           
+                "0.4": {
+                    "pre": [80.0, 0.0, 0.0],      
+                    "post": [0.0, 0.0, 0.0],      
+                },
+                "0.8": [-80.0, 0.0, 0.0]          
+            }
+        }
+    }
+]
+```
+非必须，都有默认值
+* loop 是否循环
+* blend_weight　这个动画与其他动画混合了多少
+* animation_length　动画结束的时间
+* override_previous_animation　在应用此动画之前，是否应将骨骼的动画姿势设置为绑定姿势，从而覆盖此点之前的任何动画？
+#### bones
+* bone_name 　对应geometry中的名称，像head,body.
+动画有多种写法:
+
+x = y = z = 1:
+```
+"position": 1.0
+"position": [1.0]
+```
+x = 1.0 ; y = 2.0 ; z = 3.0
+`"position": [1.0, 2.0, 3.0]`
+
+x = y = z = 45 degrees
+```
+"rotation": 45.0
+"rotation": [45.0]
+```
+
+x = 30 degrees ; y = 0 degrees ; z = 45 degrees
+`"rotation": [30.0, 0.0, 45.0]`
+
+x,y,z,w被设置对应的弧度：
+`"rotation": [0.373, 0.577, 0.687, 0.235]`
+
+scale = 2.0;
+```
+"scale": 2.0
+"scale": [2.0]
+```
+上述任何一种值都适用于“pre”和“post”，而“pre”不必具有与“post”相同的格式．
+
+关键帧数据如下所述
