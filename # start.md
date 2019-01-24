@@ -103,7 +103,7 @@ Identifier用于向服务器注册实体。在客户端实体定义JSON中，标
 指定'渲染控制器'的名称。此名称需要与Render Controllers文件夹中对应的JSON的名称匹配。玩家可更改Minecraft原版材质来创造自己的'渲染控制器'。自定义'渲染控制器'应位于资源包根目录的textures文件夹中。
 
 ### locators
-定位器偏移在模块空间中指定。定位器的例子有 "lead&quot；定位器用于显示指引将附加到何处。
+定位器偏移在模块空间中指定。定位器的例子有 "lead"；定位器用于显示指引将附加到何处。
 
 ### enable_attachables
 实体是否可以装备。这允许实体渲染装甲(true)。
@@ -113,9 +113,312 @@ Identifier用于向服务器注册实体。在客户端实体定义JSON中，标
 ### spawn_egg
 这设置刷怪蛋的 材质。
 #### 使用十六进制值来决定底部颜色和上部颜色:
+* base_color:底部颜色
+* overlay_color:顶部颜色
 ```
 "spawn_egg": {
   "base_color": "#53443E",
   "overlay_color": "#2E6854"
 }
 ```
+
+#### 指定一个材质:
+一个指定材质的刷怪蛋的例子。刷怪蛋储存在材质包文件夹里的JSON，"items_texture"当这个材质有多个名称时，你可以用(texture_index)指数选其中一个。如果没有特别指定的指数，你可以假设第一个材质的指数为0.
+
+```
+"spawn_egg": {
+  "texture": "spawn_egg",
+  "texture_index": 2
+}
+
+```
+都挺简单的，不是吗？下面的内容就稍微有点难度了:]
+
+## 数据驱动动画
+这可能需要一点数学知识)
+### 概要
+该方案应遵循当前的Minecraft JSON方案
+* 字段应为小写并使用下划线（无空格）。
+* 定义目录和subtree中的所有JSON文件都将被动画系统读入并解释。
+* 对于十月技术预览，您需要启用世界上的“使用测试游戏”选项。
+
+### 开始
+我们先去拿一份新的行为包作为参照:
+```
+mkdir addons && cd addons 
+wget https://aka.ms/behaviorpacktemplate
+```
+打印一下目录：
+```
+addons
+├── Documentation_Addons.html
+├── Documentation_Animations.html
+├── Documentation_Particles.html
+├── entities
+│   ├── area_effect_cloud.json
+│   ├── armor_stand.json
+│   ├── arrow.json
+│   ├── bat.json
+│   ├── blaze.json
+│   ├── boat.json
+│   ├── cat.json
+│   ├── cave_spider.json
+│   ├── chest_minecart.json
+│   ├── chicken.json
+│   ├── command_block_minecart.json
+│   ├── cow.json
+│   ├── creeper.json
+│   ├── dolphin.json
+│   ├── donkey.json
+│   ├── dragon_fireball.json
+│   ├── drowned.json
+│   ├── egg.json
+│   ├── elder_guardian.json
+│   ├── ender_crystal.json
+│   ├── ender_dragon.json
+│   ├── enderman.json
+│   ├── endermite.json
+│   ├── ender_pearl.json
+│   ├── evocation_illager.json
+│   ├── eye_of_ender_signal.json
+│   ├── fireball.json
+│   ├── fireworks_rocket.json
+│   ├── fishing_hook.json
+│   ├── fish.json
+│   ├── ghast.json
+│   ├── guardian.json
+│   ├── hopper_minecart.json
+│   ├── horse.json
+│   ├── husk.json
+│   ├── iron_golem.json
+│   ├── lightning_bolt.json
+│   ├── lingering_potion.json
+│   ├── llama.json
+│   ├── llama_spit.json
+│   ├── magma_cube.json
+│   ├── minecart.json
+│   ├── mooshroom.json
+│   ├── mule.json
+│   ├── ocelot.json
+│   ├── panda.json
+│   ├── parrot.json
+│   ├── phantom.json
+│   ├── pig.json
+│   ├── player.json
+│   ├── polar_bear.json
+│   ├── pufferfish.json
+│   ├── rabbit.json
+│   ├── salmon.json
+│   ├── sheep.json
+│   ├── shulker_bullet.json
+│   ├── shulker.json
+│   ├── silverfish.json
+│   ├── skeleton_horse.json
+│   ├── skeleton.json
+│   ├── slime.json
+│   ├── small_fireball.json
+│   ├── snowball.json
+│   ├── snow_golem.json
+│   ├── spider.json
+│   ├── splash_potion.json
+│   ├── squid.json
+│   ├── stray.json
+│   ├── thrown_trident.json
+│   ├── tnt.json
+│   ├── tnt_minecart.json
+│   ├── tripod_camera.json
+│   ├── tropicalfish.json
+│   ├── turtle.json
+│   ├── vex.json
+│   ├── villager.json
+│   ├── vindicator.json
+│   ├── witch.json
+│   ├── wither.json
+│   ├── wither_skeleton.json
+│   ├── wither_skull_dangerous.json
+│   ├── wither_skull.json
+│   ├── wolf.json
+│   ├── xp_bottle.json
+│   ├── zombie_horse.json
+│   ├── zombie.json
+│   ├── zombie_pigman.json
+│   └── zombie_villager.json
+├── loot_tables
+│   ├── chests
+│   │   ├── abandoned_mineshaft.json
+│   │   ├── buriedtreasure.json
+│   │   ├── desert_pyramid.json
+│   │   ├── dispenser_trap.json
+│   │   ├── end_city_treasure.json
+│   │   ├── igloo_chest.json
+│   │   ├── jungle_temple.json
+│   │   ├── monster_room.json
+│   │   ├── nether_bridge.json
+│   │   ├── shipwreck.json
+│   │   ├── shipwrecksupply.json
+│   │   ├── shipwrecktreasure.json
+│   │   ├── simple_dungeon.json
+│   │   ├── spawn_bonus_chest.json
+│   │   ├── stronghold_corridor.json
+│   │   ├── stronghold_crossing.json
+│   │   ├── stronghold_library.json
+│   │   ├── underwater_ruin_big.json
+│   │   ├── underwater_ruin_small.json
+│   │   ├── village_blacksmith.json
+│   │   ├── village_two_room_house.json
+│   │   └── woodland_mansion.json
+│   ├── empty.json
+│   ├── entities
+│   │   ├── armor_set_chain.json
+│   │   ├── armor_set_diamond.json
+│   │   ├── armor_set_gold.json
+│   │   ├── armor_set_iron.json
+│   │   ├── armor_set_leather.json
+│   │   ├── armor_stand.json
+│   │   ├── bat.json
+│   │   ├── blaze.json
+│   │   ├── boat.json
+│   │   ├── cat_gift.json
+│   │   ├── cat.json
+│   │   ├── cave_spider.json
+│   │   ├── chicken.json
+│   │   ├── clownfish.json
+│   │   ├── cow.json
+│   │   ├── creeper.json
+│   │   ├── dolphin.json
+│   │   ├── drowned_equipment.json
+│   │   ├── drowned.json
+│   │   ├── drowned_ranged_equipment.json
+│   │   ├── elder_guardian.json
+│   │   ├── enderman.json
+│   │   ├── endermite.json
+│   │   ├── evocation_illager.json
+│   │   ├── fish.json
+│   │   ├── ghast.json
+│   │   ├── giant.json
+│   │   ├── guardian.json
+│   │   ├── horse.json
+│   │   ├── iron_golem.json
+│   │   ├── llama.json
+│   │   ├── magma_cube.json
+│   │   ├── mooshroom.json
+│   │   ├── mooshroom_shear.json
+│   │   ├── ocelot.json
+│   │   ├── panda.json
+│   │   ├── panda_sneeze.json
+│   │   ├── parrot.json
+│   │   ├── phantom.json
+│   │   ├── pig.json
+│   │   ├── pig_saddled.json
+│   │   ├── polar_bear.json
+│   │   ├── pufferfish.json
+│   │   ├── rabbit.json
+│   │   ├── salmon_large.json
+│   │   ├── salmon_normal.json
+│   │   ├── sea_turtle.json
+│   │   ├── sheep.json
+│   │   ├── sheep_sheared.json
+│   │   ├── sheep_shear.json
+│   │   ├── shulker.json
+│   │   ├── silverfish.json
+│   │   ├── skeleton_gear.json
+│   │   ├── skeleton_horse.json
+│   │   ├── skeleton.json
+│   │   ├── slime.json
+│   │   ├── snowman.json
+│   │   ├── spider.json
+│   │   ├── squid.json
+│   │   ├── stray.json
+│   │   ├── tropicalfish.json
+│   │   ├── vex_gear.json
+│   │   ├── vindication_illager.json
+│   │   ├── vindicator_gear.json
+│   │   ├── witch.json
+│   │   ├── wither_boss.json
+│   │   ├── wither_skeleton_gear.json
+│   │   ├── wither_skeleton.json
+│   │   ├── wolf.json
+│   │   ├── zombie_equipment.json
+│   │   ├── zombie_horse.json
+│   │   ├── zombie.json
+│   │   ├── zombie_pigman_gear.json
+│   │   └── zombie_pigman.json
+│   ├── equipment
+│   │   └── low_tier_items.json
+│   └── gameplay
+│       ├── fishing
+│       │   ├── fish.json
+│       │   ├── jungle_fish.json
+│       │   ├── jungle_junk.json
+│       │   ├── junk.json
+│       │   └── treasure.json
+│       ├── fishing.json
+│       └── jungle_fishing.json
+├── manifest.json
+├── pack_icon.png
+├── spawn_rules
+│   ├── bat.json
+│   ├── blaze.json
+│   ├── cat.json
+│   ├── chicken.json
+│   ├── cod.json
+│   ├── cow.json
+│   ├── creeper.json
+│   ├── dolphin.json
+│   ├── donkey.json
+│   ├── drowned.json
+│   ├── enderman.json
+│   ├── ghast.json
+│   ├── guardian.json
+│   ├── horse.json
+│   ├── husk.json
+│   ├── llama.json
+│   ├── magma_cube.json
+│   ├── mooshroom.json
+│   ├── ocelot.json
+│   ├── panda.json
+│   ├── parrot.json
+│   ├── phantom.json
+│   ├── pig.json
+│   ├── polar_bear.json
+│   ├── pufferfish.json
+│   ├── rabbit.json
+│   ├── salmon.json
+│   ├── sheep.json
+│   ├── skeleton.json
+│   ├── slime.json
+│   ├── spider.json
+│   ├── squid.json
+│   ├── stray.json
+│   ├── tropicalfish.json
+│   ├── turtle.json
+│   ├── witch.json
+│   ├── wither_skeleton.json
+│   ├── wolf.json
+│   ├── zombie.json
+│   └── zombie_pigman.json
+└── trading
+    ├── armorer_trades.json
+    ├── butcher_trades.json
+    ├── cartographer_trades.json
+    ├── cleric_trades.json
+    ├── farmer_trades.json
+    ├── fisherman_trades.json
+    ├── fletcher_trades.json
+    ├── leather_worker_trades.json
+    ├── librarian_trades.json
+    ├── shepherd_trades.json
+    ├── tool_smith_trades.json
+    └── weapon_smith_trades.json
+
+```
+行为包总体变化不大，就增加了一个'spawn_rules'目录，还送文档官方真是贴心呢XD
+
+我们再拿一份材质包：
+```
+mkdir textures && cd textures
+wget https://aka.ms/resourcepacktemplate
+```
+列一下目录，列表[点这里](./textures.md)
+
+资源包中添加了几个关于动画的新目录
