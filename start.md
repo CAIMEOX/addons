@@ -46,10 +46,16 @@ JSON文件的文件类型是'.json'
 很多时候我们可能因为少些了个逗号，括号而导致json不工作，就像Java的分号一样，很难看出来:(
 
 幸好我们有一些工具来帮助我们检验json的合法性
-[Bejson](www.bejson.com)]
+[Bejson](https://www.bejson.com)
 
 它会告诉你哪里出错了
 ## 开始
+大部分抄袭自官方文档:)
+
 我们先拿一份行为包：
 `wget https://aka.ms/behaviorpacktemplate`
 
+解压缩，列出目录，目录[点这里](addonslist.md)
+
+我们先说说文件根目录的几个文件
+- 

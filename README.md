@@ -9,7 +9,7 @@
 
 ## 目录
 * [创建行为包](start.md)
-* [开始](start.md)
+* [动画](animation.md)
 * [粒子](Particles.md)
 
 ## 欢迎分享你在addons过程中遇见的问题！
